@@ -15,8 +15,8 @@ module tt_um_adityaamehra (
 localparam integer in_width           = 8;
 localparam integer out_width          = 8;
 localparam integer decimation_ratio   = 8;
-localparam integer order              = 6;
-localparam integer differential_delay = 3;
+localparam integer order              = 7;
+localparam integer differential_delay = 2;
 
 // ── Internal signal mapping ───────────────────────────────────────────────────
 wire signed [in_width-1:0]  d_in     = $signed(ui_in);
