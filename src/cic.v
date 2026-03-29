@@ -12,10 +12,10 @@ module tt_um_adityaamehra (
 );
 
 // ── Parameters (Option A: 8-bit in/out) ──────────────────────────────────────
-localparam integer in_width          = 8;
-localparam integer out_width         = 8;
-localparam integer decimation_ratio  = 8;
-localparam integer order             = 6;
+localparam integer in_width           = 8;
+localparam integer out_width          = 8;
+localparam integer decimation_ratio   = 8;
+localparam integer order              = 6;
 localparam integer differential_delay = 4;
 
 // ── Internal signal mapping ───────────────────────────────────────────────────
@@ -26,7 +26,7 @@ wire                         valid_out;
 
 assign uo_out  = d_out;
 assign uio_out = {7'b0, valid_out};
-assign uio_oe  = 8'b0000_0001;       // only bit 0 is driven as output
+assign uio_oe  = 8'b0000_0001;
 
 wire _unused = &{ena, uio_in[7:1], 1'b0};
 
@@ -38,28 +38,32 @@ reg signed [in_width+GAIN_BITS-1:0] d_tmp;
 reg signed [in_width+GAIN_BITS-1:0] integrator [0:order-1];
 reg [COUNTW-1:0] counter;
 
-// Counter (kept on negedge clk as in original)
+// ── Counter ───────────────────────────────────────────────────────────────────
 always @(negedge clk or negedge rst_n) begin
     if (!rst_n) counter <= {COUNTW{1'b1}};
-    else if (valid_in) begin
+    else if (valid_in)
         counter <= counter + 1;
-    end
 end
 
-assign valid_out = (counter == 1'b0);
+// FIX 2: use COUNTW-wide zero for comparison
+assign valid_out = (counter == {COUNTW{1'b0}});
 
-wire signed [in_width+GAIN_BITS-1:0] comb    [0:order-1];
-reg  signed [in_width+GAIN_BITS-1:0] d_comb  [0:order-1][0:differential_delay-1];
+/* verilator lint_off UNOPTFLAT */
+wire signed [in_width+GAIN_BITS-1:0] comb   [0:order-1];
+/* verilator lint_on UNOPTFLAT */
+reg  signed [in_width+GAIN_BITS-1:0] d_comb [0:order-1][0:differential_delay-1];
 
 integer i;
 integer j;
 
-// Integrator + decimation
+// ── Integrator + decimation ───────────────────────────────────────────────────
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         for (i = 0; i <= order-1; i = i + 1)
-            integrator[i] <= {(in_width+GAIN_BITS-1){1'b0}};
-        d_tmp <= {(in_width+GAIN_BITS-1){1'b0}};
+            // FIX 1a: was (in_width+GAIN_BITS-1), now (in_width+GAIN_BITS)
+            integrator[i] <= {(in_width+GAIN_BITS){1'b0}};
+        // FIX 1b: was (in_width+GAIN_BITS-1), now (in_width+GAIN_BITS)
+        d_tmp <= {(in_width+GAIN_BITS){1'b0}};
     end else if (valid_in) begin
         integrator[0] <= integrator[0] + $signed(d_in);
         for (i = 1; i <= order-1; i = i + 1)
@@ -69,12 +73,13 @@ always @(posedge clk or negedge rst_n) begin
     end
 end
 
-// Comb section
+// ── Comb section ──────────────────────────────────────────────────────────────
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         for (i = 0; i <= order-1; i = i + 1)
             for (j = 0; j < differential_delay; j = j + 1)
-                d_comb[i][j] <= {(in_width+GAIN_BITS-1){1'b0}};
+                // FIX 1c: was (in_width+GAIN_BITS-1), now (in_width+GAIN_BITS)
+                d_comb[i][j] <= {(in_width+GAIN_BITS){1'b0}};
     end else begin
         if (valid_out) begin
             for (j = differential_delay-1; j > 0; j = j - 1)
@@ -89,7 +94,7 @@ always @(posedge clk or negedge rst_n) begin
     end
 end
 
-// Comb taps
+// ── Comb taps ─────────────────────────────────────────────────────────────────
 genvar r;
 assign comb[0] = d_tmp - d_comb[0][differential_delay-1];
 generate
@@ -98,9 +103,11 @@ generate
     end
 endgenerate
 
-// Output with rounding/truncation
+// ── Output with rounding — FIX 3: suppress intentional truncation warning ─────
+/* verilator lint_off WIDTHTRUNC */
 assign d_out =
     ( comb[order-1] + (1 << (in_width+GAIN_BITS-out_width-1)) )
     >>> (in_width+GAIN_BITS-out_width);
+/* verilator lint_on WIDTHTRUNC */
 
 endmodule
