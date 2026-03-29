@@ -65,7 +65,7 @@ always @(posedge clk or negedge rst_n) begin
         // FIX 1b: was (in_width+GAIN_BITS-1), now (in_width+GAIN_BITS)
         d_tmp <= {(in_width+GAIN_BITS){1'b0}};
     end else if (valid_in) begin
-        integrator[0] <= integrator[0] + $signed(d_in);
+        integrator[0] <= integrator[0] + {{GAIN_BITS{d_in[in_width-1]}}, d_in};
         for (i = 1; i <= order-1; i = i + 1)
             integrator[i] <= integrator[i] + integrator[i-1];
         if (valid_out)
