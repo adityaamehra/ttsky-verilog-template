@@ -9,12 +9,12 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
-Explain how your project works
+This is just an adder and nothing else , a 8 bit adder
 
 ## How to test
 
-Explain how to use your project
+Just use 2 , 8-bit numbers and get 1 8-bit number
 
 ## External hardware
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+Lund
