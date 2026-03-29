@@ -53,8 +53,9 @@ wire signed [in_width+GAIN_BITS-1:0] comb   [0:order-1];
 /* verilator lint_on UNOPTFLAT */
 reg  signed [in_width+GAIN_BITS-1:0] d_comb [0:order-1][0:differential_delay-1];
 
-integer i;
-integer j;
+integer i;  // loop variable for integrator always block
+integer j;  // loop variable for comb always block (delay dimension)
+integer k;  // loop variable for comb always block (order dimension)
 
 // ── Integrator + decimation ───────────────────────────────────────────────────
 always @(posedge clk or negedge rst_n) begin
@@ -75,18 +76,18 @@ end
 // ── Comb section ──────────────────────────────────────────────────────────────
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-        for (i = 0; i <= order-1; i = i + 1)
+        for (k = 0; k <= order-1; k = k + 1)
             for (j = 0; j < differential_delay; j = j + 1)
-                d_comb[i][j] <= {(in_width+GAIN_BITS){1'b0}};
+                d_comb[k][j] <= {(in_width+GAIN_BITS){1'b0}};
     end else begin
         if (valid_out) begin
             for (j = differential_delay-1; j > 0; j = j - 1)
                 d_comb[0][j] <= d_comb[0][j-1];
             d_comb[0][0] <= d_tmp;
-            for (i = 1; i <= order-1; i = i + 1) begin
+            for (k = 1; k <= order-1; k = k + 1) begin
                 for (j = differential_delay-1; j > 0; j = j - 1)
-                    d_comb[i][j] <= d_comb[i][j-1];
-                d_comb[i][0] <= comb[i-1];
+                    d_comb[k][j] <= d_comb[k][j-1];
+                d_comb[k][0] <= comb[k-1];
             end
         end
     end
