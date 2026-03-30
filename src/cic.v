@@ -15,7 +15,7 @@ module tt_um_adityaamehra (
 localparam integer in_width           = 8;
 localparam integer out_width          = 8;
 localparam integer decimation_ratio   = 8;
-localparam integer order              = 5;
+localparam integer order              = 6;
 localparam integer differential_delay = 1;
 
 // ── Internal signal mapping ───────────────────────────────────────────────────
